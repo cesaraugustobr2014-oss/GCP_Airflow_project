@@ -146,6 +146,15 @@ Variáveis principais:
 
 ---
 
+## Autor
+
+Desenvolvido por **Cesar Augusto**.
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Perfil-blue?style=flat&logo=linkedin)](https://www.linkedin.com/in/cesaraugustooliveirarodrigues/)
+[![GitHub](https://img.shields.io/badge/GitHub-Portfólio-darkgreen?style=flat&logo=github)](https://github.com/cesaraugustobr2014-oss)
+
+---
+
 ## Licença
 
 Distribuído sob a licença MIT. Consulte [`LICENSE`](LICENSE) para mais detalhes.
