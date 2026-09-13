@@ -1,83 +1,83 @@
-# Architecture Overview
+# Visão Geral da Arquitetura
 
-## High-Level Architecture
+## Arquitetura de Alto Nível
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                      DATA SOURCES                                    │
-│  - Google Reviews, TripAdvisor, Yelp, Email, Social Media          │
+│                      FONTES DE DADOS                                 │
+│  - Google Reviews, TripAdvisor, Yelp, Email, Redes Sociais         │
 └─────────────────────────────────────────────────────────────────────┘
-                                  │
-                                  ▼
+                                   │
+                                   ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                     INGESTION LAYER                                  │
-│  - Read CSV/JSON from local or GCS                                 │
-│  - Add metadata (ingestion_timestamp, source)                      │
-│  - Write to RAW layer (Parquet)                                    │
+│                     CAMADA DE INGESTÃO                               │
+│  - Ler CSV/JSON de local ou GCS                                    │
+│  - Adicionar metadados (ingestion_timestamp, source)               │
+│  - Escrever na camada RAW (Parquet)                                │
 └─────────────────────────────────────────────────────────────────────┘
-                                  │
-                                  ▼
+                                   │
+                                   ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                   GOOGLE CLOUD STORAGE (Data Lake)                  │
 │  ┌───────────────────────────────────────────────────────────────┐  │
-│  │  raw/reviews/year=YYYY/month=MM/day=DD/                      │  │
-│  │  - Original data format (Parquet)                            │  │
-│  │  - Partitioned by ingestion date                             │  │
+│  │  raw/reviews/ano=AAAA/mês=MM/dia=DD/                          │  │
+│  │  - Formato original de dados (Parquet)                       │  │
+│  │  - Particionado por data de ingestão                         │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 │  ┌───────────────────────────────────────────────────────────────┐  │
-│  │  trusted/reviews/year=YYYY/month=MM/day=DD/                  │  │
-│  │  - Cleaned and validated data                                │  │
-│  │  - Normalized sources, cities, states                        │  │
+│  │  trusted/reviews/ano=AAAA/mês=MM/dia=DD/                     │  │
+│  │  - Dados limpos e validados                                  │  │
+│  │  - Fontes normalizadas, cidades, estados                     │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 │  ┌───────────────────────────────────────────────────────────────┐  │
-│  │  curated/customer_sentiment/year=YYYY/month=MM/day=DD/      │  │
-│  │  - Final data with sentiment analysis                        │  │
-│  │  - Ready for BigQuery ingestion                              │  │
+│  │  curated/cliente_sentimento/ano=AAAA/mês=MM/dia=DD/         │  │
+│  │  - Dados finais com análise de sentimentos                   │  │
+│  │  - Pronto para ingestão no BigQuery                          │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────┘
-                                  │
-                                  ▼
+                                   │
+                                   ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    APACHE AIRFLOW (Orchestration)                   │
-│  - DAGs define workflow dependencies                               │
-│  - Task retries and error handling                                 │
-│  - Logging and monitoring                                          │
-│  - Can run locally OR connect to Cloud Composer                   │
+│                   APACHE AIRFLOW (Orquestração)                    │
+│  - DAGs definem dependências de workflow                           │
+│  - Retentativas de tarefas e tratamento de erros                  │
+│  - Logging e monitoramento                                         │
+│  - Pode rodar localmente OU conectar ao Cloud Composer            │
 └─────────────────────────────────────────────────────────────────────┘
-                                  │
-                                  ▼
+                                   │
+                                   ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    DATA VALIDATION LAYER                            │
-│  - Schema validation                                               │
-│  - Null checks                                                     │
-│  - Range validation (ratings 1-5)                                 │
-│  - Source validation                                               │
-│  - Duplicate detection                                             │
-│  - Data quality metrics                                            │
+│                  CAMADA DE VALIDAÇÃO DE DADOS                       │
+│  - Validação de schema                                             │
+│  - Verificações de nulos                                           │
+│  - Validação de faixa (ratings 1-5)                               │
+│  - Validação de fonte                                              │
+│  - Detecção de duplicatas                                          │
+│  - Métricas de qualidade de dados                                  │
 └─────────────────────────────────────────────────────────────────────┘
-                                  │
-                                  ▼
+                                   │
+                                   ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                  APACHE SPARK / DATAPROC                            │
-│  - Deduplication (Spark)                                           │
-│  - Null handling (Spark)                                           │
-│  - Text normalization (Spark)                                      │
-│  - Standardization (Spark)                                         │
-│  - Rating validation (Spark)                                       │
+│  - Deduplicação (Spark)                                            │
+│  - Tratamento de nulos (Spark)                                     │
+│  - Normalização de texto (Spark)                                   │
+│  - Padronização (fontes, cidades, estados)                        │
+│  - Validação de ratings (Spark)                                    │
 └─────────────────────────────────────────────────────────────────────┘
-                                  │
-                                  ▼
+                                   │
+                                   ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                   SENTIMENT ANALYSIS LAYER                          │
+│                 CAMADA DE ANÁLISE DE SENTIMENTOS                    │
 │  - VADER (Valence Aware Dictionary for Sentiment Reasoning)       │
-│  - Local Python library (no external API)                          │
-│  - Output: POSITIVE, NEUTRAL, NEGATIVE                            │
-│  - Output: sentiment_score (-1.0 to +1.0)                         │
+│  - Biblioteca Python local (sem API externa)                       │
+│  - Saída: POSITIVO, NEUTRO, NEGATIVO                              │
+│  - Saída: sentiment_score (-1.0 a +1.0)                           │
 └─────────────────────────────────────────────────────────────────────┘
-                                  │
-                                  ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                       BIGQUERY (Data Warehouse)                     │
+                                   │
+                                   ▼
+┌────────────────────────────────────��────────────────────────────────┐
+│                     BIGQUERY (Data Warehouse)                       │
 │  Dataset: customer_experience                                       │
 │  ┌───────────────────────────────────────────────────────────────┐  │
 │  │  dim_source                                                   │  │
@@ -87,12 +87,12 @@
 │  ┌───────────────────────────────────────────────────────────────┐  │
 │  │  dim_location                                                 │  │
 │  │  - location_id (PK)                                           │  │
-│  │  - city                                                       │  │
-│  │  - state                                                      │  │
-│  │  - country                                                    │  │
+│  │  - cidade                                                     │  │
+│  │  - estado                                                     │  │
+│  │  - país                                                       │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 │  ┌───────────────────────────────────────────────────────────────┐  │
-│  │  fact_reviews (Partitioned by review_date)                   │  │
+│  │  fact_reviews (Partitioned por review_date)                  │  │
 │  │  - review_id (PK)                                             │  │
 │  │  - customer_id                                                │  │
 │  │  - source_id (FK)                                             │  │
@@ -104,42 +104,42 @@
 │  │  - review_date                                                │  │
 │  │  - ingestion_timestamp                                        │  │
 │  │  - processing_timestamp                                       │  │
-│  │  - CLUSTER BY source_id, location_id, sentiment              │  │
+│  │  - CLUSTERED BY source_id, location_id, sentiment            │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────┘
-                                  │
-                                  ▼
+                                   │
+                                   ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                      ANALYTICS & DASHBOARDS                         │
-│  - SQL queries for business insights                               │
-│  - Looker Studio / Superset / Metabase dashboards                 │
-│  - Scheduled reports                                               │
+│                   ANALÍTICOS & DASHBOARDS                           │
+│  - Consultas SQL para insights de negócio                         │
+│  - Dashboards Looker Studio / Superset / Metabase                │
+│  - Relatórios agendados                                            │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-## Data Flow Diagram
+## Diagrama de Fluxo de Dados
 
 ```mermaid
 flowchart TB
-    subgraph "1. Input Layer"
-        CSV["CSV/JSON Files"]
-        GCS["GCS Buckets"]
+    subgraph "1. Camada de Entrada"
+        CSV["Arquivos CSV/JSON"]
+        GCS["Buckets GCS"]
     end
 
-    subgraph "2. Orchestration"
+    subgraph "2. Orquestração"
         AF["Apache Airflow"]
     end
 
     subgraph "3. Data Lake"
-        RAW["RAW Layer (Parquet)"]
-        TRUSTED["TRUSTED Layer (Parquet)"]
-        CURATED["CURATED Layer (Parquet)"]
+        RAW["Camada RAW (Parquet)"]
+        TRUSTED["Camada TRUSTED (Parquet)"]
+        CURATED["Camada CURATED (Parquet)"]
     end
 
-    subgraph "4. Processing"
-        SPK["Spark Transformation"]
-        DQ["Data Quality Checks"]
-        SA["Sentiment Analysis"]
+    subgraph "4. Processamento"
+        SPK["Transformação Spark"]
+        DQ["Verificações de Qualidade"]
+        SA["Análise de Sentimentos"]
     end
 
     subgraph "5. Warehouse"
@@ -157,59 +157,59 @@ flowchart TB
     CURATED --> BQ
 ```
 
-## Technology Stack
+## Tech Stack
 
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| Orchestration | Apache Airflow | Workflow management, scheduling, monitoring |
-| Processing | PySpark / Dataproc | Large-scale data transformation |
-| Storage | Google Cloud Storage | Data lake (RAW, TRUSTED, CURATED) |
-| Warehouse | BigQuery | Data warehouse, analytics |
-| Sentiment | VADER (NLTK) | Sentiment classification |
-| Infrastructure | Terraform | IaC for GCP resources |
-| Containerization | Docker | Local development environment |
+| Camada | Tecnologia | Propósito |
+|--------|------------|-----------|
+| Orquestração | Apache Airflow | Gerenciamento de workflow, agendamento, monitoramento |
+| Processamento | PySpark / Dataproc | Transformação de dados em grande escala |
+| Armazenamento | Google Cloud Storage | Data lake (RAW, TRUSTED, CURATED) |
+| Warehouse | BigQuery | Data warehouse, analíticos |
+| Sentimento | VADER (NLTK) | Classificação de sentimentos |
+| Infraestrutura | Terraform | IaC para recursos GCP |
+| Containerização | Docker | Ambiente de desenvolvimento local |
 
-## Data Processing Pipeline
+## Pipeline de Processamento de Dados
 
-1. **Data Ingestion**
-   - Read CSV/JSON from local or GCS
-   - Add metadata (ingestion_timestamp, source)
-   - Write to RAW layer (Parquet format)
+1. **Ingestão de Dados**
+   - Ler CSV/JSON de local ou GCS
+   - Adicionar metadados (ingestion_timestamp, source)
+   - Escrever na camada RAW (formato Parquet)
 
-2. **Data Validation**
-   - Schema validation
-   - Null checks
-   - Range validation
-   - Duplicate detection
-   - Data quality metrics
+2. **Validação de Dados**
+   - Validação de schema
+   - Verificações de nulos
+   - Validação de faixa
+   - Detecção de duplicatas
+   - Métricas de qualidade de dados
 
-3. **Data Transformation**
-   - Deduplication
-   - Null handling
-   - Text normalization
-   - Standardization (sources, cities, states)
-   - Rating validation
+3. **Transformação de Dados**
+   - Deduplicação
+   - Tratamento de nulos
+   - Normalização de texto
+   - Padronização (fontes, cidades, estados)
+   - Validação de ratings
 
-4. **Sentiment Analysis**
-   - VADER classification
-   - Score calculation (-1.0 to +1.0)
-   - Label assignment (POSITIVE/NEUTRAL/NEGATIVE)
+4. **Análise de Sentimentos**
+   - Classificação VADER
+   - Cálculo de score (-1.0 a +1.0)
+   - Atribuição de rótulo (POSITIVO/NEUTRO/NEGATIVO)
 
-5. **Data Loading**
-   - Create dimensions (dim_source, dim_location)
-   - Create fact table (fact_reviews)
-   - Partition by review_date
-   - Cluster for query optimization
+5. **Carregamento de Dados**
+   - Criar dimensões (dim_source, dim_location)
+   - Criar tabela fato (fact_reviews)
+   - Particionar por review_date
+   - Clusterizar para otimização de consultas
 
-## Error Handling
+## Tratamento de Erros
 
-- **Retries**: Tasks retry up to 3 times on failure
-- **Logging**: All tasks log to Airflow logs and stdout
-- **Fail Fast**: Critical validations cause DAG to fail immediately
-- **Idempotency**: All tasks are idempotent (can be re-run safely)
+- **Retentativas**: Tarefas retentam até 3 vezes em caso de falha
+- **Logging**: Todas as tarefas logam para logs do Airflow e stdout
+- **Fail Fast**: Validações críticas fazem o DAG falhar imediatamente
+- **Idempotência**: Todas as tarefas são idempotentes (podem ser reexecutadas com segurança)
 
-## Scalability
+## Escalabilidade
 
-- **Local**: Processes 10,000 records in ~1-2 minutes
-- **GCP**: Can scale to millions of records with Dataproc
-- **Streaming**: Can be extended with Pub/Sub + Dataflow
+- **Local**: Processa 10.000 registros em ~1-2 minutos
+- **GCP**: Pode escalar para milhões de registros com Dataproc
+- **Streaming**: Pode ser estendido com Pub/Sub + Dataflow
