@@ -138,8 +138,9 @@ def generate_review_date() -> str:
 
 
 def generate_ingestion_timestamp() -> str:
-    """Generate ingestion timestamp."""
-    return datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    """Generate ingestion timestamp (fixed for reproducibility)."""
+    # Use fixed timestamp for reproducibility in tests
+    return "2026-09-12T21:00:00"
 
 
 def apply_data_quality_issues(review: Dict[str, Any], index: int) -> Dict[str, Any]:

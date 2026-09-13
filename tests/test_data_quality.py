@@ -9,6 +9,7 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Test only functions that don't require pyspark
 from data_quality.checks import (
     validate_schema,
     check_nulls,
@@ -16,7 +17,6 @@ from data_quality.checks import (
     check_invalid_sources,
     check_duplicates,
     check_empty_text,
-    run_all_validations
 )
 
 
@@ -175,46 +175,29 @@ class TestCheckDuplicates:
         assert count >= 1  # At least one duplicate
 
 
-class TestRunAllValidations:
-    """Tests for run_all_validations function."""
+class TestCheckEmptyText:
+    """Tests for check_empty_text function."""
 
-    def test_valid_dataset(self):
-        """Test with valid dataset."""
+    def test_non_empty_text(self):
+        """Test with non-empty text."""
         data = {
             "review_id": ["REV001", "REV002"],
-            "source": ["google_reviews", "tripadvisor"],
-            "customer_id": ["CUS001", "CUS002"],
-            "city": ["São Paulo", "Rio"],
-            "state": ["SP", "RJ"],
-            "country": ["BR", "BR"],
-            "rating": [5, 4],
             "review_text": ["Ótimo!", "Bom."],
-            "review_date": ["2026-01-01", "2026-01-02"],
-            "ingestion_timestamp": ["2026-01-04T10:00:00"] * 2,
         }
         df = pd.DataFrame(data)
         
-        results = run_all_validations(df)
+        count, records = check_empty_text(df)
         
-        assert results["is_valid"] is True
-        assert results["total_records"] == 2
+        assert count == 0
 
-    def test_invalid_dataset(self):
-        """Test with invalid dataset."""
+    def test_empty_text(self):
+        """Test with empty text."""
         data = {
-            "review_id": [None, "REV002"],
-            "source": ["google_reviews", "unknown_source"],
-            "customer_id": ["CUS001", "CUS002"],
-            "city": ["São Paulo", "Rio"],
-            "state": ["SP", "RJ"],
-            "country": ["BR", "BR"],
-            "rating": [5, 0],  # 0 is invalid
-            "review_text": ["Ótimo!", "Bom."],
-            "review_date": ["2026-01-01", "2026-01-02"],
-            "ingestion_timestamp": ["2026-01-04T10:00:00"] * 2,
+            "review_id": ["REV001", "REV002"],
+            "review_text": ["Ótimo!", ""],
         }
         df = pd.DataFrame(data)
         
-        results = run_all_validations(df)
+        count, records = check_empty_text(df)
         
-        assert results["is_valid"] is False
+        assert count == 1  # REV002 has empty text

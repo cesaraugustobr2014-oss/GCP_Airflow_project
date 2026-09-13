@@ -19,7 +19,6 @@ Validation Rules:
 
 import logging
 from typing import Dict, List, Tuple, Union
-from pyspark.sql import DataFrame
 import pandas as pd
 
 # Configure logging
@@ -29,7 +28,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Valid values
+# Valid sources
 VALID_SOURCES = [
     "google_reviews",
     "tripadvisor",
@@ -48,16 +47,14 @@ SCHEMA_REQUIREMENTS = {
     "city": {"type": "string", "nullable": True},
     "state": {"type": "string", "nullable": True},
     "country": {"type": "string", "nullable": True},
-    "rating": {"type": "integer", "nullable": False, "min": 1, "max": 5},
+    "rating": {"type": "numeric", "nullable": False, "min": 1, "max": 5},
     "review_text": {"type": "string", "nullable": False},
-    "review_date": {"type": "date", "nullable": False},
-    "ingestion_timestamp": {"type": "timestamp", "nullable": False},
+    "review_date": {"type": "string", "nullable": False},  # YYYY-MM-DD format
+    "ingestion_timestamp": {"type": "string", "nullable": False},  # ISO format
 }
 
 
-def validate_schema(
-    df: Union[pd.DataFrame, DataFrame]
-) -> Tuple[bool, List[str]]:
+def validate_schema(df: pd.DataFrame) -> Tuple[bool, List[str]]:
     """
     Validate that DataFrame has expected columns and types.
     
@@ -69,57 +66,41 @@ def validate_schema(
     """
     errors = []
     
-    if isinstance(df, pd.DataFrame):
-        required_columns = list(SCHEMA_REQUIREMENTS.keys())
-        actual_columns = list(df.columns)
-        
-        missing_columns = set(required_columns) - set(actual_columns)
-        extra_columns = set(actual_columns) - set(required_columns)
-        
-        if missing_columns:
-            errors.append(f"Missing columns: {missing_columns}")
-        if extra_columns:
-            errors.append(f"Unexpected columns: {extra_columns}")
-        
-        # Check types (basic)
-        for col, requirements in SCHEMA_REQUIREMENTS.items():
-            if col in df.columns:
-                expected_type = requirements["type"]
-                actual_type = df[col].dtype
-                
-                type_match = False
-                if expected_type == "string":
-                    type_match = pd.api.types.is_string_dtype(df[col])
-                elif expected_type == "integer":
-                    type_match = pd.api.types.is_integer_dtype(df[col])
-                elif expected_type == "float":
-                    type_match = pd.api.types.is_float_dtype(df[col])
-                elif expected_type == "date":
-                    type_match = pd.api.types.is_datetime64_any_dtype(df[col])
-                
-                if not type_match:
-                    errors.append(f"Column '{col}' has type {actual_type}, expected {expected_type}")
+    required_columns = list(SCHEMA_REQUIREMENTS.keys())
+    actual_columns = list(df.columns)
     
-    else:
-        # PySpark DataFrame
-        expected_fields = set(SCHEMA_REQUIREMENTS.keys())
-        actual_fields = set(df.columns)
-        
-        missing_fields = expected_fields - actual_fields
-        extra_fields = actual_fields - expected_fields
-        
-        if missing_fields:
-            errors.append(f"Missing fields: {missing_fields}")
-        if extra_fields:
-            errors.append(f"Unexpected fields: {extra_fields}")
+    missing_columns = set(required_columns) - set(actual_columns)
+    extra_columns = set(actual_columns) - set(required_columns)
+    
+    if missing_columns:
+        errors.append(f"Missing columns: {missing_columns}")
+    if extra_columns:
+        errors.append(f"Unexpected columns: {extra_columns}")
+    
+    # Check types (basic)
+    for col, requirements in SCHEMA_REQUIREMENTS.items():
+        if col in df.columns:
+            expected_type = requirements["type"]
+            actual_type = df[col].dtype
+            
+            type_match = False
+            if expected_type == "string":
+                type_match = pd.api.types.is_string_dtype(df[col])
+            elif expected_type == "integer" or expected_type == "numeric":
+                type_match = pd.api.types.is_integer_dtype(df[col])
+            elif expected_type == "float":
+                type_match = pd.api.types.is_float_dtype(df[col])
+            elif expected_type == "date":
+                type_match = pd.api.types.is_datetime64_any_dtype(df[col])
+            
+            if not type_match:
+                errors.append(f"Column '{col}' has type {actual_type}, expected {expected_type}")
     
     is_valid = len(errors) == 0
     return is_valid, errors
 
 
-def check_nulls(
-    df: Union[pd.DataFrame, DataFrame]
-) -> Dict[str, int]:
+def check_nulls(df: pd.DataFrame) -> Dict[str, int]:
     """
     Check for null values in required columns.
     
@@ -131,35 +112,27 @@ def check_nulls(
     """
     null_counts = {}
     
-    if isinstance(df, pd.DataFrame):
-        required_nullable = {
-            "review_id": False,
-            "source": False,
-            "customer_id": False,
-            "rating": False,
-            "review_text": False,
-            "review_date": False,
-        }
-        
-        for col, not_nullable in required_nullable.items():
-            if col in df.columns:
-                null_count = df[col].isnull().sum()
-                null_counts[col] = int(null_count)
-                
-                if not_nullable and null_count > 0:
-                    logger.warning(f"Column '{col}' has {null_count} null values (not allowed)")
-    else:
-        # PySpark
-        for col in df.columns:
-            null_count = df.filter(df[col].isNull()).count()
-            null_counts[col] = null_count
+    required_nullable = {
+        "review_id": False,
+        "source": False,
+        "customer_id": False,
+        "rating": False,
+        "review_text": False,
+        "review_date": False,
+    }
+    
+    for col, not_nullable in required_nullable.items():
+        if col in df.columns:
+            null_count = df[col].isnull().sum()
+            null_counts[col] = int(null_count)
+            
+            if not_nullable and null_count > 0:
+                logger.warning(f"Column '{col}' has {null_count} null values (not allowed)")
     
     return null_counts
 
 
-def check_invalid_ratings(
-    df: Union[pd.DataFrame, DataFrame]
-) -> Tuple[int, List]:
+def check_invalid_ratings(df: pd.DataFrame) -> Tuple[int, List]:
     """
     Check for ratings outside valid range (1-5).
     
@@ -172,32 +145,22 @@ def check_invalid_ratings(
     invalid_count = 0
     invalid_records = []
     
-    if isinstance(df, pd.DataFrame):
-        for idx, row in df.iterrows():
-            rating = row.get("rating")
-            if pd.notna(rating):
-                try:
-                    rating_int = int(rating)
-                    if rating_int < 1 or rating_int > 5:
-                        invalid_count += 1
-                        invalid_records.append((idx, rating))
-                except (ValueError, TypeError):
+    for idx, row in df.iterrows():
+        rating = row.get("rating")
+        if pd.notna(rating):
+            try:
+                rating_int = int(rating)
+                if rating_int < 1 or rating_int > 5:
                     invalid_count += 1
                     invalid_records.append((idx, rating))
-    else:
-        # PySpark
-        invalid_df = df.filter(
-            (df.rating < 1) | (df.rating > 5) | (df.rating.isNull())
-        )
-        invalid_count = invalid_df.count()
-        invalid_records = invalid_df.select("review_id", "rating").collect()
+            except (ValueError, TypeError):
+                invalid_count += 1
+                invalid_records.append((idx, rating))
     
     return invalid_count, invalid_records
 
 
-def check_invalid_sources(
-    df: Union[pd.DataFrame, DataFrame]
-) -> Tuple[int, List]:
+def check_invalid_sources(df: pd.DataFrame) -> Tuple[int, List]:
     """
     Check for sources not in supported list.
     
@@ -210,28 +173,20 @@ def check_invalid_sources(
     invalid_count = 0
     invalid_sources = []
     
-    if isinstance(df, pd.DataFrame):
-        for idx, row in df.iterrows():
-            source = row.get("source")
-            if pd.notna(source):
-                source_str = str(source).strip().lower()
-                if source_str not in [s.lower() for s in VALID_SOURCES]:
-                    invalid_count += 1
-                    invalid_sources.append((idx, source))
-    else:
-        # PySpark
-        valid_sources_lower = [s.lower() for s in VALID_SOURCES]
-        invalid_df = df.filter(~df.source.lower().isin(valid_sources_lower))
-        invalid_count = invalid_df.count()
-        invalid_sources = invalid_df.select("review_id", "source").collect()
+    valid_sources_lower = [s.lower() for s in VALID_SOURCES]
+    
+    for idx, row in df.iterrows():
+        source = row.get("source")
+        if pd.notna(source):
+            source_str = str(source).strip().lower()
+            if source_str not in valid_sources_lower:
+                invalid_count += 1
+                invalid_sources.append((idx, source))
     
     return invalid_count, invalid_sources
 
 
-def check_duplicates(
-    df: Union[pd.DataFrame, DataFrame],
-    id_column: str = "review_id"
-) -> Tuple[int, List]:
+def check_duplicates(df: pd.DataFrame, id_column: str = "review_id") -> Tuple[int, List]:
     """
     Check for duplicate records by ID.
     
@@ -245,24 +200,15 @@ def check_duplicates(
     duplicate_count = 0
     duplicate_ids = []
     
-    if isinstance(df, pd.DataFrame):
-        duplicates = df[df.duplicated(subset=[id_column], keep=False)]
-        duplicate_count = len(duplicates)
-        duplicate_ids = duplicates[id_column].tolist()
-    else:
-        # PySpark
-        duplicates = df.groupBy(id_column).count().filter("count > 1")
-        duplicate_count = duplicates.count()
-        duplicate_ids = [row[id_column] for row in duplicates.collect()]
+    duplicates = df[df.duplicated(subset=[id_column], keep=False)]
+    duplicate_count = len(duplicates)
+    duplicate_ids = duplicates[id_column].tolist()
     
     logger.info(f"Found {duplicate_count} duplicate records by {id_column}")
     return duplicate_count, duplicate_ids
 
 
-def check_empty_text(
-    df: Union[pd.DataFrame, DataFrame],
-    text_column: str = "review_text"
-) -> Tuple[int, List]:
+def check_empty_text(df: pd.DataFrame, text_column: str = "review_text") -> Tuple[int, List]:
     """
     Check for empty or whitespace-only text.
     
@@ -276,26 +222,16 @@ def check_empty_text(
     empty_count = 0
     empty_records = []
     
-    if isinstance(df, pd.DataFrame):
-        for idx, row in df.iterrows():
-            text = row.get(text_column)
-            if pd.isna(text) or str(text).strip() == "":
-                empty_count += 1
-                empty_records.append((idx, text))
-    else:
-        # PySpark
-        empty_df = df.filter(
-            df[text_column].isNull() | (df[text_column] == "") | (df[text_column].startswith(" ") & df[text_column].endswith(" "))
-        )
-        empty_count = empty_df.count()
-        empty_records = empty_df.select("review_id", text_column).collect()
+    for idx, row in df.iterrows():
+        text = row.get(text_column)
+        if pd.isna(text) or str(text).strip() == "":
+            empty_count += 1
+            empty_records.append((idx, text))
     
     return empty_count, empty_records
 
 
-def run_all_validations(
-    df: Union[pd.DataFrame, DataFrame]
-) -> Dict:
+def run_all_validations(df: pd.DataFrame) -> Dict:
     """
     Run all validations and return summary.
     
@@ -306,7 +242,7 @@ def run_all_validations(
         Dictionary with validation results
     """
     results = {
-        "total_records": len(df) if isinstance(df, pd.DataFrame) else df.count(),
+        "total_records": len(df),
         "timestamp": str(pd.Timestamp.now()),
         "validations": {}
     }
@@ -344,46 +280,3 @@ def run_all_validations(
     results["is_valid"] = is_all_valid
     
     return results
-
-
-# Example usage
-if __name__ == "__main__":
-    import sys
-    
-    if len(sys.argv) < 2:
-        print("Usage: python -m data_quality.checks <csv_file_path>")
-        sys.exit(1)
-    
-    csv_path = sys.argv[1]
-    
-    print(f"Running data quality checks on: {csv_path}")
-    
-    # Read data
-    df = pd.read_csv(csv_path)
-    print(f"Loaded {len(df)} records\n")
-    
-    # Run validations
-    results = run_all_validations(df)
-    
-    # Print summary
-    print("=" * 60)
-    print("DATA QUALITY SUMMARY")
-    print("=" * 60)
-    print(f"Total Records: {results['total_records']}")
-    print(f"Overall Valid: {results['is_valid']}")
-    print()
-    
-    for validation_name, result in results["validations"].items():
-        if validation_name == "schema":
-            print(f"Schema Validation:")
-            print(f"  Is Valid: {result['is_valid']}")
-            if result['errors']:
-                print(f"  Errors: {result['errors']}")
-        elif validation_name == "nulls":
-            print(f"Null Checks:")
-            for col, count in result.items():
-                print(f"  {col}: {count} nulls")
-        else:
-            print(f"{validation_name.replace('_', ' ').title()}: {result}")
-    
-    print("=" * 60)
