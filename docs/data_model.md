@@ -1,21 +1,21 @@
-# Data Model
+# Modelo de Dados
 
-## BigQuery Schema
+## Schema BigQuery
 
 ### Dataset: `customer_experience`
 
-## Dimension Tables
+## Tabelas de Dimensão
 
 ### dim_source
 
-Stores supported review sources.
+Armazena as fontes de avaliações suportadas.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| source_id | INT64 | Unique source identifier (PK) |
-| source_name | STRING | Source name (google_reviews, tripadvisor, yelp, email, social_media) |
+| Coluna | Tipo | Descrição |
+|--------|------|-----------|
+| source_id | INT64 | Identificador único da fonte (PK) |
+| source_name | STRING | Nome da fonte (google_reviews, tripadvisor, yelp, email, social_media) |
 
-**Example Data:**
+**Exemplo de Dados:**
 | source_id | source_name |
 |-----------|-------------|
 | 1 | google_reviews |
@@ -26,16 +26,16 @@ Stores supported review sources.
 
 ### dim_location
 
-Stores location information.
+Armazena informações de localização.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| location_id | INT64 | Unique location identifier (PK) |
-| city | STRING | City name |
-| state | STRING | State abbreviation (e.g., SP, RJ, MG) |
-| country | STRING | Country code (e.g., BR) |
+| Coluna | Tipo | Descrição |
+|--------|------|-----------|
+| location_id | INT64 | Identificador único de localização (PK) |
+| city | STRING | Nome da cidade |
+| state | STRING | Sigla do estado (ex: SP, RJ, MG) |
+| country | STRING | Código do país (ex: BR) |
 
-**Example Data:**
+**Exemplo de Dados:**
 | location_id | city | state | country |
 |-------------|------|-------|---------|
 | 1 | São Paulo | SP | BR |
@@ -43,119 +43,90 @@ Stores location information.
 | 3 | Belo Horizonte | MG | BR |
 | 4 | Salvador | BA | BR |
 
-## Fact Table
+## Tabela Fato
 
 ### fact_reviews
 
-Main table containing customer reviews with sentiment analysis.
+Tabela principal contendo avaliações de clientes com análise de sentimentos.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| review_id | STRING | Unique review identifier (PK) |
-| customer_id | STRING | Customer identifier |
-| source_id | INT64 | Foreign key to dim_source |
-| location_id | INT64 | Foreign key to dim_location |
-| rating | INT64 | Rating (1-5) |
-| review_text | STRING | Cleaned review text |
-| sentiment | STRING | Sentiment classification |
-| sentiment_score | FLOAT64 | Sentiment score (-1.0 to +1.0) |
-| review_date | DATE | Date of the review |
-| ingestion_timestamp | TIMESTAMP | When record was ingested |
-| processing_timestamp | TIMESTAMP | When record was processed |
+| Coluna | Tipo | Descrição |
+|--------|------|-----------|
+| review_id | STRING | Identificador único da avaliação (PK) |
+| customer_id | STRING | Identificador do cliente |
+| source_id | INT64 | Chave estrangeira para dim_source |
+| location_id | INT64 | Chave estrangeira para dim_location |
+| rating | INT64 | Avaliação (1-5) |
+| review_text | STRING | Texto da avaliação limpo |
+| sentiment | STRING | Classificação de sentimento |
+| sentiment_score | FLOAT64 | Score de sentimento (-1.0 a +1.0) |
+| review_date | DATE | Data da avaliação |
+| ingestion_timestamp | TIMESTAMP | Quando o registro foi ingestido |
+| processing_timestamp | TIMESTAMP | Quando o registro foi processado |
 
-**Partitioning:** `review_date` (Daily)
+**PARTICIONADA POR:** `review_date` (Diariamente)
 
-**Clustering:** `source_id`, `location_id`, `sentiment`
+**AGRUPADA POR:** `source_id`, `location_id`, `sentiment`
 
-### Partition Strategy
+## Estratégia de Particionamento
 
-Daily partitioning on `review_date` is optimal because:
-- Queries typically filter by date range
-- Enables efficient deletion of old data
-- Supports time-based analytics
+O particionamento diário em `review_date` é ótimo porque:
+- Consultas normalmente filtram por intervalo de data
+- Permite exclusão eficiente de dados antigos
+- Suporta analíticos baseados em tempo
 
-### Clustering Strategy
+## Estratégia de Agrupamento
 
-Clustering on `source_id`, `location_id`, and `sentiment` optimizes:
-- Filter by source (most common query)
-- Filter by location
-- Filter by sentiment (for sentiment analysis)
+O agrupamento em `source_id`, `location_id` e `sentiment` otimiza:
+- Filtro por fonte (query mais comum)
+- Filtro por localização
+- Filtro por sentimento (para análise de sentimentos)
 
-**Note:** Clustering is optional and depends on query patterns.
+**Nota:** O agrupamento é opcional e depende dos padrões de query.
 
-## Data Relationships
+## Relacionamentos de Dados
 
-```mermaid
-erDiagram
-    dim_source {
-        int source_id PK
-        string source_name
-    }
-    
-    dim_location {
-        int location_id PK
-        string city
-        string state
-        string country
-    }
-    
-    fact_reviews {
-        string review_id PK
-        string customer_id
-        int source_id FK
-        int location_id FK
-        int rating
-        string review_text
-        string sentiment
-        float sentiment_score
-        date review_date
-        timestamp ingestion_timestamp
-        timestamp processing_timestamp
-    }
-    
-    fact_reviews}o--||dim_source: "uses"
-    fact_reviews}o--||dim_location: "has"
-```
+**Relacionamentos:**
+- `fact_reviews.source_id` → `dim_source.source_id`
+- `fact_reviews.location_id` → `dim_location.location_id`
 
-## ETL Flow
+## Fluxo ETL
 
 ```
-Input Data → Clean → Validate → Transform → Join Dimensions → Load to BigQuery
+Dados de Entrada → Limpar → Validar → Transformar → Juntar Dimensões → Carregar no BigQuery
 ```
 
-### Step-by-Step
+### Passo a Passo
 
-1. **Input**: Raw reviews CSV
-2. **Clean**: Remove duplicates, handle nulls, normalize text
-3. **Validate**: Check ratings (1-5), valid sources, non-empty text
-4. **Transform**: Create sentiment, add processing timestamps
-5. **Dimension Lookup**: Get source_id and location_id from dimension tables
-6. **Load**: Insert into fact_reviews
+1. **Entrada**: Avaliações CSV brutas
+2. **Limpeza**: Remover duplicatas, tratar nulos, normalizar texto
+3. **Validação**: Verificar ratings (1-5), fontes válidas, texto não vazio
+4. **Transformação**: Criar sentimento, adicionar timestamps de processamento
+5. ** lookup de Dimensões**:Obter source_id e location_id das tabelas de dimensão
+6. **Carregamento**: Inserir na fact_reviews
 
-## Analytics Queries
+## Métricas de Qualidade
 
-See `sql/analytics.sql` for examples:
+| Métrica | Descrição | Limite |
+|---------|-----------|--------|
+| total_records | Total de registros processados | N/A |
+| valid_records | Registros passando todas as validações | > 95% do total |
+| invalid_ratings | Registros com ratings inválidos | < 1% do total |
+| duplicate_records | review_ids duplicados | 0 |
+| null_text | Registros com texto vazio | < 1% do total |
+| sentiment_distribution | Proporção Positivo/Neutro/Negativo | Definido pelo negócio |
 
-1. **Count reviews by source**
-2. **Sentiment by city**
-3. **Overall sentiment distribution**
-4. **Average rating by source**
-5. **Rating distribution**
-6. **Sentiment over time (daily)**
-7. **Cities with most negative sentiment**
-8. **Correlation between rating and sentiment**
-9. **Monthly trend**
-10. **Review count by location**
+Consulte `sql/data_quality.sql` para consultas de validação.
 
-## Quality Metrics
+## Consultas Analíticas
 
-| Metric | Description | Threshold |
-|--------|-------------|-----------|
-| total_records | Total records processed | N/A |
-| valid_records | Records passing all validations | > 95% of total |
-| invalid_ratings | Records with invalid ratings | < 1% of total |
-| duplicate_records | Duplicate review_ids | 0 |
-| null_text | Records with empty text | < 1% of total |
-| sentiment_distribution | Positive/Neutral/Negative ratio | Business defined |
-
-See `sql/data_quality.sql` for validation queries.
+Consulte `sql/analytics.sql` para 10+ consultas como:
+1. Contar avaliações por fonte
+2. Sentimento por cidade
+3. Distribuição geral de sentimento
+4. Avaliação média por fonte
+5. Distribuição de ratings
+6. Sentimento ao longo do tempo (diário)
+7. Cidades com mais sentimentos negativos
+8. Correlação entre rating e sentimento
+9. Tendência mensal
+10. Contagem de avaliações por localização
