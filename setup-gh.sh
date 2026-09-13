@@ -1,0 +1,35 @@
+#!/bin/bash
+# Setup GitHub credentials script
+
+echo "========================================"
+echo "GitHub Credentials Setup Guide"
+echo "========================================"
+echo ""
+
+echo "O git precisa de suas credenciais para fazer push."
+echo ""
+echo "Escolha uma das opções abaixo:"
+echo ""
+echo "OPÇÃO 1: GitHub CLI (recomendado - mais seguro)"
+echo "------------------------------------------------"
+echo "1. Instale gh se não tiver:"
+echo "   sudo apt install gh  (Ubuntu/Debian)"
+echo "2. Configure:"
+echo "   gh auth login"
+echo "3. Siga as instruções"
+echo ""
+
+echo "OPÇÃO 2: Personal Access Token"
+echo "--------------------------------"
+echo "1. Crie um token em: https://github.com/settings/tokens"
+echo "2. Selecione scopes: repo (full control)"
+echo "3. Copie o token gerado"
+echo "4. Quando git pedir password, cole o token"
+echo ""
+
+echo "Depois de configurar, Execute:"
+echo "  cd /home/cesar/GCP_projects/customer-experience"
+echo "  git push -u origin main"
+echo ""
+echo "O repo é: https://github.com/cesaraugustobr2014-oss/GCP_Airflow_project"
+echo ""
