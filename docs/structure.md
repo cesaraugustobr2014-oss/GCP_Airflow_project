@@ -1,116 +1,116 @@
-# Project Structure
+# Estrutura do Projeto
 
 ```
 customer-experience-pipeline/
 │
-├── README.md                    # Main README
-├── Makefile                     # Development commands
-├── requirements.txt             # Python dependencies
-├── requirements-test.txt        # Testing dependencies
-├── docker-compose.yml           # Airflow Docker configuration
-├── .env.example                 # Environment variables template
-├── .gitignore                   # Git ignore rules
-├── pytest.ini                   # Pytest configuration
+├── README.md                    # README principal
+├── Makefile                     # Comandos de desenvolvimento
+├── requirements.txt             # Dependências Python
+├── requirements-test.txt        # Dependências de teste
+├── docker-compose.yml           # Configuração Airflow Docker
+├── .env.example                 # Template de variáveis de ambiente
+├── .gitignore                   # Regras de ignorar Git
+├── pytest.ini                   # Configuração Pytest
 │
-├── dags/                        # Apache Airflow DAGs
+├── dags/                        # DAGs Apache Airflow
 │   ├── __init__.py
-│   ├── customer_reviews_local_pipeline.py    # Local pipeline DAG
-│   └── customer_reviews_gcp_pipeline.py      # GCP pipeline DAG
+│   ├── customer_reviews_local_pipeline.py    # DAG pipeline local
+│   └── customer_reviews_gcp_pipeline.py      # DAG pipeline GCP
 │
-├── scripts/                     # Utility scripts
+├── scripts/                     # Scripts utilitários
 │   ├── __init__.py
-│   └── generate_sample_data.py  # Sample data generator
+│   └── generate_sample_data.py  # Gerador de dados amostra
 │
-├── ingestion/                   # Data ingestion module
+├── ingestion/                   # Módulo de ingestão de dados
 │   ├── __init__.py
-│   └── ingest_reviews.py        # CSV to Parquet ingestion
+│   └── ingest_reviews.py        # Ingestão CSV para Parquet
 │
-├── transformations/             # Data transformations
+├── transformations/             # Transformações de dados
 │   ├── __init__.py
-│   ├── clean_reviews.py         # Data cleaning
-│   └── sentiment_analysis.py    # VADER sentiment analysis
+│   ├── clean_reviews.py         # Limpeza de dados
+│   └── sentiment_analysis.py    # Análise de sentimentos VADER
 │
-├── spark/                       # Spark processing jobs
+├── spark/                       # Jobs Spark
 │   ├── __init__.py
-│   ├── transform_reviews.py     # PySpark transformation job
-│   └── utils.py                 # Spark session utilities
+│   ├── transform_reviews.py     # Job de transformação PySpark
+│   └── utils.py                 # Utilitários de sessão Spark
 │
-├── data_quality/                # Data quality checks
+├── data_quality/                # Verificações de qualidade de dados
 │   ├── __init__.py
-│   └── checks.py                # Validation functions
+│   └── checks.py                # Funções de validação
 │
-├── sql/                         # SQL scripts
-│   ├── create_dataset.sql       # BigQuery dataset creation
-│   ├── create_tables.sql        # Table DDL
-│   ├── data_quality.sql         # Quality check queries
-│   └── analytics.sql            # Business analytics queries
+├── sql/                         # Scripts SQL
+│   ├── create_dataset.sql       # Criação de dataset BigQuery
+│   ├── create_tables.sql        # DDL de tabelas
+│   ├── data_quality.sql         # Consultas de verificação de qualidade
+│   └── analytics.sql            # Consultas analíticas de negócios
 │
-├── data/                        # Data directory (GITIGNORED)
-│   ├── sample/                  # Generated sample data
-│   ├── raw/                     # RAW layer (Parquet)
-│   ├── trusted/                 # TRUSTED layer (Parquet)
-│   └── curated/                 # CURATED layer (Parquet)
+├── data/                        # Diretório de dados (GITIGNORED)
+│   ├── sample/                  # Dados amostra gerados
+│   ├── raw/                     # Camada RAW (Parquet)
+│   ├── trusted/                 # Camada TRUSTED (Parquet)
+│   └── curated/                 # Camada CURATED (Parquet)
 │
-├── tests/                       # Unit tests
+├── tests/                       # Testes unitários
 │   ├── __init__.py
-│   ├── conftest.py              # Pytest fixtures
-│   ├── test_ingestion.py        # Ingestion tests
-│   ├── test_transformations.py  # Transformation tests
-│   ├── test_sentiment.py        # Sentiment analysis tests
-│   ├── test_data_quality.py     # Data quality tests
-│   └── test_spark.py            # Spark job tests
+│   ├── conftest.py              # Fixtures Pytest
+│   ├── test_ingestion.py        # Testes de ingestão
+│   ├── test_transformations.py  # Testes de transformação
+│   ├── test_sentiment.py        # Testes de análise de sentimentos
+│   ├── test_data_quality.py     # Testes de qualidade de dados
+│   └── test_spark.py            # Testes de job Spark
 │
 ├── terraform/                   # Infrastructure as Code
-│   ├── main.tf                  # Terraform config
-│   ├── variables.tf             # Input variables
-│   ├── outputs.tf               # Output variables
-│   ├── storage.tf               # GCS buckets
-│   ├── bigquery.tf              # BigQuery resources
-│   └── README.md                # Terraform docs
+│   ├── main.tf                  # Configuração Terraform
+│   ├── variables.tf             # Variáveis de entrada
+│   ├── outputs.tf               # Variáveis de saída
+│   ├── storage.tf               # Buckets GCS
+│   ├── bigquery.tf              |# Recursos BigQuery
+│   └── README.md                # Documentação Terraform
 │
-├── docs/                        # Project documentation
+├── docs/                        # Documentação do projeto
 │   ├── architecture.md
 │   ├── data_model.md
 │   ├── pipeline.md
 │   └── images/
 │
-└── .github/                     # GitHub workflows
+└── .github/                     # Workflows GitHub
     └── workflows/
-        └── tests.yml            # CI/CD pipeline
+        └── tests.yml            # Pipeline CI/CD
 ```
 
-## Directory Purposes
+## Propósito dos Diretórios
 
-| Directory | Purpose |
-|-----------|---------|
-| `dags/` | Airflow DAG definitions |
-| `scripts/` | Standalone Python scripts |
-| `ingestion/` | Data ingestion module |
-| `transformations/` | Data cleaning and transformation |
-| `spark/` | PySpark jobs |
-| `data_quality/` | Data validation checks |
-| `sql/` | SQL scripts for BigQuery |
-| `data/` | Generated data files |
-| `tests/` | Unit tests |
-| `terraform/` | GCP infrastructure code |
-| `docs/` | Documentation |
+| Diretório | Propósito |
+|-----------|-----------|
+| `dags/` | Definições DAGs do Airflow |
+| `scripts/` | Scripts Python autônomos |
+| `ingestion/` | Módulo de ingestão de dados |
+| `transformations/` | Limpeza e transformação de dados |
+| `spark/` | Jobs PySpark |
+| `data_quality/` | Verificações de validação de dados |
+| `sql/` | Scripts SQL para BigQuery |
+| `data/` | Arquivos de dados gerados |
+| `tests/` | Testes unitários |
+| `terraform/` | Código de infraestrutura GCP |
+| `docs/` | Documentação |
 
-## Data Layers
+## Camadas de Dados
 
-| Layer | Description | Format |
-|-------|-------------|--------|
-| **sample/** | Generated sample data | CSV |
-| **raw/** | Input data (as-is) | Parquet (partitioned) |
-| **trusted/** | Cleaned data | Parquet (partitioned) |
-| **curated/** | Business-ready data | Parquet |
+| Camada | Descrição | Formato |
+|--------|-----------|---------|
+| **sample/** | Dados amostra gerados | CSV |
+| **raw/** | Dados de entrada (como estão) | Parquet (particionado) |
+| **trusted/** | Dados limpos | Parquet (particionado) |
+| **curated/** | Dados prontos para negócios | Parquet |
 
-## Environment Variables
+## Variáveis de Ambiente
 
-See `.env.example` for full list.
+Veja `.env.example` para lista completa.
 
-Key variables:
-- `GCP_PROJECT_ID`: Your GCP project ID
-- `GCP_REGION`: GCP region (default: us-central1)
-- `GCS_RAW_BUCKET`: RAW layer bucket name
-- `BIGQUERY_DATASET`: BigQuery dataset ID
-- `GOOGLE_APPLICATION_CREDENTIALS`: Path to service account JSON
+Variáveis principais:
+- `GCP_PROJECT_ID`: ID do seu projeto GCP
+- `GCP_REGION`: Região GCP (padrão: us-central1)
+- `GCS_RAW_BUCKET`: Nome do bucket para camada RAW
+- `BIGQUERY_DATASET`: ID do dataset BigQuery
+- `GOOGLE_APPLICATION_CREDENTIALS`: Caminho para JSON de service account
