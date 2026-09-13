@@ -1,385 +1,385 @@
-# Customer Experience Data Pipeline
+# Pipeline de Experiência do Cliente
 
-End-to-End Data Engineering Pipeline using Apache Airflow, Spark, Google Cloud Storage, and BigQuery
+Pipeline de Engenharia de Dados End-to-End usando Apache Airflow, Spark, Google Cloud Storage e BigQuery
 
-## Overview
+## Visão Geral
 
-This project demonstrates a production-grade **Customer Experience Data Pipeline** built for analyzing customer reviews across multiple sources (Google Reviews, TripAdvisor, Yelp, Email, Social Media).
+Este projeto demonstra um **Pipeline de Experiência do Cliente** em nível de produção, construído para analisar avaliações de clientes em múltiplas fontes (Google Reviews, TripAdvisor, Yelp, Email, Redes Sociais).
 
-The pipeline implements a **3-layer data lake architecture** (RAW → TRUSTED → CURATED) with:
+O pipeline implementa uma **arquitetura de data lake em 3 camadas** (RAW → TRUSTED → CURATED) com:
 
-- ✅ **Data Ingestion** from CSV/JSON
-- ✅ **Data Validation** and quality checks
-- ✅ **Data Transformation** with PySpark
-- ✅ **Sentiment Analysis** using VADER
-- ✅ **Orchestration** with Apache Airflow
-- ✅ **Data Warehouse** on BigQuery
-- ✅ **Infrastructure as Code** with Terraform
-
----
-
-## 🎯 Project Focus
-
-**This is primarily a DATA ENGINEERING project, NOT a Machine Learning project.**
-
-While sentiment analysis (VADER) is included, the core value is in demonstrating:
-
-- 📦 **ETL/ELT processes** for large datasets
-- 🧹 **Data cleaning and normalization**
-- 🛡️ **Data quality enforcement**
-- 🔄 **Pipeline orchestration**
-- 📊 **Data warehouse modeling**
-- ☁️ **Cloud architecture (GCP)**
-- 🧪 **Testing and observability**
+- ✅ **Ingestão de dados** de CSV/JSON
+- ✅ **Validação de dados** e verificações de qualidade
+- ✅ **Transformação de dados** com PySpark
+- ✅ **Análise de sentimentos** usando VADER
+- ✅ **Orquestração** com Apache Airflow
+- ✅ **Data Warehouse** no BigQuery
+- ✅ **Infraestrutura como Código** com Terraform
 
 ---
 
-## 📊 Architecture
+## 🎯 Foco do Projeto
+
+**Este é principalmente um projeto de ENGENHARIA DE DADOS, NÃO um projeto de Machine Learning.**
+
+Embora a análise de sentimentos (VADER) esteja incluída, o valor central está em demonstrar:
+
+- 📦 **Processos ETL/ELT** para grandes volumes de dados
+- 🧹 **Limpeza e normalização de dados**
+- 🛡️ **Aplicação de qualidade de dados**
+- 🔄 **Orquestração de pipelines**
+- 📊 **Modelagem de data warehouse**
+- ☁️ **Arquitetura em nuvem (GCP)**
+- 🧪 **Testes e observabilidade**
+
+---
+
+## 📊 Arquitetura
 
 ```
-DATA SOURCES → INGESTION → RAW (GCS) → VALIDATION → TRANSFORMATION (Spark)
-                                    ↓
-                              TRUSTED (GCS) → SENTIMENT → CURATED (GCS)
-                                    ↓
-                              BIGQUERY → ANALYTICS & DASHBOARDS
+FONTES DE DADOS → INGESTÃO → RAW (GCS) → VALIDAÇÃO → TRANSFORMAÇÃO (Spark)
+                                         ↓
+                                   TRUSTED (GCS) → SENTIMENTO → CURATED (GCS)
+                                         ↓
+                                    BIGQUERY → ANALÍTICOS & DASHBOARDS
 ```
 
-### Data Lake Layers
+### Camadas do Data Lake
 
-| Layer | Description | Format |
-|-------|-------------|--------|
-| **RAW** | Original data (as-ingested) | Parquet (partitioned) |
-| **TRUSTED** | Cleaned, validated data | Parquet (partitioned) |
-| **CURATED** | Business-ready data | Parquet (partitioned) |
+| Camada | Descrição | Formato |
+|--------|-----------|---------|
+| **RAW** | Dados originais (como ingestão) | Parquet ( particionado) |
+| **TRUSTED** | Dados limpos e validados | Parquet (particionado) |
+| **CURATED** | Dados prontos para negócios | Parquet |
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Orchestration | Apache Airflow |
-| Processing | PySpark / Dataproc |
-| Storage | Google Cloud Storage (Data Lake) |
+| Camada | Tecnologia |
+|--------|------------|
+| Orquestração | Apache Airflow |
+| Processamento | PySpark / Dataproc |
+| Armazenamento | Google Cloud Storage (Data Lake) |
 | Warehouse | BigQuery |
-| Sentiment | VADER (NLTK) |
-| Data Quality | Custom checks |
-| Infrastructure | Terraform |
-| Containerization | Docker |
+| Sentimento | VADER (NLTK) |
+| Qualidade | Verificações customizadas |
+| Infraestrutura | Terraform |
+| Containerização | Docker |
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Guia Rápido
 
-### Prerequisites
+### Pré-requisitos
 
 - Python 3.10+
-- Docker and Docker Compose (optional, for Airflow)
-- GCP account (optional, for cloud demo)
+- Docker e Docker Compose (opcional, para Airflow)
+- Conta GCP (opcional, para demo em nuvem)
 
-### Step 1: Setup Dependencies
+### Passo 1: Instalar Dependências
 
 ```bash
 cd /home/cesar/GCP_projects/customer-experience
 
-# Install Python dependencies
+# Instalar dependências Python
 make setup
 
-# Or manually:
+# Ou manualmente:
 pip install -r requirements.txt
 ```
 
-### Step 2: Generate Sample Data
+### Passo 2: Gerar Dados de Amostra
 
 ```bash
-# Generate 10,000 synthetic reviews
+# Gerar 10.000 avaliações sintéticas
 make generate-data
 
-# Or run directly:
+# Ou executar diretamente:
 python scripts/generate_sample_data.py
 ```
 
-### Step 3: Run Tests
+### Passo 3: Executar Testes
 
 ```bash
-# Run all tests
+# Executar todos os testes
 make test
 
-# Run with coverage
+# Executar com cobertura
 make test-coverage
 ```
 
-### Step 4: Run Airflow (Optional)
+### Passo 4: Executar Airflow (Opcional)
 
 ```bash
-# Start Airflow with Docker Compose
+# Iniciar Airflow com Docker Compose
 make airflow-up
 
-# Access UI at http://localhost:8080
-# Username: airflow
-# Password: airflow
+# Acessar UI em http://localhost:8080
+# Usuário: airflow
+# Senha: airflow
 
-# Stop when done
+# Parar quando terminar
 make airflow-down
 ```
 
 ---
 
-## 📂 Project Structure
+## 📂 Estrutura do Projeto
 
 ```
 customer-experience-pipeline/
-├── dags/                 # Apache Airflow DAGs
-├── scripts/             # Utility scripts
-├── ingestion/           # Data ingestion module
-├── transformations/     # Data cleaning and sentiment
-├── spark/               # PySpark jobs
-├── data_quality/        # Data validation checks
-├── sql/                 # SQL scripts (BigQuery)
-├── data/                # Generated data (GITIGNORED)
-│   ├── sample/         # Raw sample data
-│   ├── raw/            # RAW layer (Parquet)
-│   ├── trusted/        # TRUSTED layer (Parquet)
-│   └── curated/        # CURATED layer (Parquet)
-├── tests/               # Unit tests
-├── terraform/           # Infrastructure as Code
-├── docs/                # Documentation
-├── docker-compose.yml   # Airflow configuration
-├── Makefile             # Development commands
-└── requirements.txt     # Python dependencies
+├── dags/                 # DAGs do Apache Airflow
+├── scripts/             # Scripts utilitários
+├── ingestion/           # Módulo de ingestão de dados
+├── transformations/     # Limpeza e análise de sentimentos
+├── spark/               # Jobs PySpark
+├── data_quality/        # Verificações de qualidade de dados
+├── sql/                 # Scripts SQL (BigQuery)
+├── data/                # Dados gerados (GITIGNORED)
+│   ├── sample/          # Dados brutos amostra
+│   ├── raw/             # Camada RAW (Parquet)
+│   ├── trusted/         # Camada TRUSTED (Parquet)
+│   └── curated/         # Camada CURATED (Parquet)
+├── tests/               # Testes unitários
+├── terraform/           # Infraestrutura como Código
+├── docs/                # Documentação
+├── docker-compose.yml   # Configuração Airflow
+├── Makefile             # Comandos de desenvolvimento
+└── requirements.txt     # Dependências Python
 ```
 
 ---
 
-## 📈 Pipeline Stages
+## 📈 Etapas do Pipeline
 
-1. **Data Generation** → Generate synthetic reviews with data quality issues
-2. **Data Ingestion** → Read CSV, write to RAW layer (Parquet)
-3. **Data Validation** → Schema, nulls, ranges, duplicates
-4. **Data Transformation** → Clean, normalize, deduplicate (PySpark)
-5. **Sentiment Analysis** → VADER classification (POSITIVE/NEUTRAL/NEGATIVE)
-6. **Data Loading** → Create dimensions, load to BigQuery
+1. **Geração de Dados** → Gerar avaliações sintéticas com problemas de qualidade
+2. **Ingestão de Dados** → Ler CSV, escrever na camada RAW (Parquet)
+3. **Validação de Dados** → Schema, nulos, faixas, duplicados
+4. **Transformação de Dados** → Limpar, normalizar, deduplicar (PySpark)
+5. **Análise de Sentimentos** → Classificação VADER (POSITIVO/NEUTRAL/NEGATIVO)
+6. **Carregamento de Dados** → Criar dimensões, carregar no BigQuery
 
 ---
 
-## 🎨 Data Model
+## 🎨 Modelo de Dados
 
-### BigQuery Schema
+### Schema BigQuery
 
 **Dataset:** `customer_experience`
 
-| Table | Description |
-|-------|-------------|
-| `dim_source` | Source dimension (google_reviews, tripadvisor, etc.) |
-| `dim_location` | Location dimension (city, state, country) |
-| `fact_reviews` | Fact table with reviews and sentiment |
+| Tabela | Descrição |
+|--------|-----------|
+| `dim_source` | Dimensão de fontes (google_reviews, tripadvisor, etc.) |
+| `dim_location` | Dimensão de localização (cidade, estado, país) |
+| `fact_reviews` | Tabela fato com avaliações e sentimentos |
 
-**Fact Table PARTITIONED BY:** `review_date`  
-**Fact Table CLUSTERED BY:** `source_id, location_id, sentiment`
+**Tabela Fato PARTICIONADA POR:** `review_date`  
+**Tabela Fato AGRUPADA POR:** `source_id, location_id, sentiment`
 
 ---
 
-## ❓ Example Analytics Queries
+## ❓ Exemplos de Consultas Analíticas
 
 ```sql
--- 1. Count reviews by source
+-- 1. Contar avaliações por fonte
 SELECT source, COUNT(*) as review_count
 FROM customer_experience.fact_reviews
 GROUP BY source
 ORDER BY review_count DESC;
 
--- 2. Sentiment by city
+-- 2. Sentimento por cidade
 SELECT city, sentiment, COUNT(*) as count
 FROM customer_experience.fact_reviews
 GROUP BY city, sentiment
 ORDER BY city, count DESC;
 
--- 3. Negative sentiment percentage
+-- 3. Percentual de sentimento negativo
 SELECT 
   ROUND(SUM(CASE WHEN sentiment = 'NEGATIVE' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as negative_percentage
 FROM customer_experience.fact_reviews;
 ```
 
-See `sql/analytics.sql` for 10+ queries.
+Veja `sql/analytics.sql` para 10+ consultas.
 
 ---
 
-## 🧪 Data Quality
+## 🧪 Qualidade de Dados
 
-The synthetic dataset includes intentional issues to demonstrate data quality checks:
+O dataset sintético inclui intencionalmente problemas para demonstrar verificações de qualidade:
 
-| Issue | Percentage | Description |
-|-------|-----------|-------------|
-| Duplicates | ~1% | Same review_id |
-| Null text | ~0.5% | Missing review text |
-| Invalid ratings | ~1% | Outside 1-5 range |
-| Missing city | ~1% | City not provided |
-| Inconsistent source case | ~1% | Mixed case in source names |
+| Problema | Porcentagem | Descrição |
+|----------|-------------|-----------|
+| Duplicatas | ~1% | Mesmo review_id |
+| Texto nulo | ~0.5% | Faltando texto de avaliação |
+| Ratings inválidos | ~1% | Fora do intervalo 1-5 |
+| Cidade ausente | ~1% | Cidade não fornecida |
+| Formatos inconsistentes | ~1% | Caixa mista em nomes de fontes |
 
-Run `make generate-data && python scripts/data_quality.py` to see all checks.
+Execute `make generate-data && python scripts/data_quality.py` para ver todas as verificações.
 
 ---
 
-## ☁️ Google Cloud Integration
+## ☁️ Integração Google Cloud
 
-### Prerequisites
+### Pré-requisitos
 
-1. **Create GCP Project** and enable APIs:
+1. **Criar Projeto GCP** e ativar APIs:
    ```bash
    gcloud services enable storage.googleapis.com
    gcloud services enable bigquery.googleapis.com
    ```
 
-2. **Authenticate**:
+2. **Autenticar**:
    ```bash
    gcloud auth application-default login
    ```
 
-3. **Configure** `.env`:
+3. **Configurar** `.env`:
    ```bash
    cp .env.example .env
-   # Edit .env with your GCP project details
+   # Editar .env com detalhes do seu projeto GCP
    ```
 
-4. **Provision Infrastructure** (Terraform):
+4. **Provisionar Infraestrutura** (Terraform):
    ```bash
    cd terraform
    terraform init
-   terraform apply -var="project_id=YOUR_PROJECT_ID"
+   terraform apply -var="project_id=SEU_PROJECT_ID"
    ```
 
-See `docs/gcp_setup.md` for detailed instructions.
-
 ---
 
-## 📝 BigQuery Setup
+## 📝 Configuração BigQuery
 
-### Create Dataset
+### Criar Dataset
 
 ```bash
-bq --project_id=YOUR_PROJECT_ID mk --dataset customer_experience
+bq --project_id=SEU_PROJECT_ID mk --dataset customer_experience
 ```
 
-### Create Tables
+### Criar Tabelas
 
 ```bash
-bq --project_id=YOUR_PROJECT_ID query --use_legacy_sql=false < sql/create_tables.sql
+bq --project_id=SEU_PROJECT_ID query --use_legacy_sql=false < sql/create_tables.sql
 ```
 
-### Load Data
+### Carregar Dados
 
 ```bash
-bq --project_id=YOUR_PROJECT_ID load \
+bq --project_id=SEU_PROJECT_ID load \
   --source_format=PARQUET \
   customer_experience.reviews \
-  gs://your-bucket/curated/customer_sentiment/*.parquet
+  gs://seu-bucket/curated/customer_sentiment/*.parquet
 ```
 
 ---
 
-## 🧪 Testing
+## 🧪 Testes
 
 ```bash
-# Run all tests
+# Executar todos os testes
 make test
 
-# Run specific test file
+# Executar arquivo específico
 pytest tests/test_ingestion.py -v
 
-# Run with coverage
+# Executar com cobertura
 make test-coverage
 
-# Run linting
+# Executar linting
 make lint
 ```
 
 ---
 
-## 🛠️ Development Commands
+## 🛠️ Comandos de Desenvolvimento
 
-| Command | Description |
-|---------|-------------|
-| `make setup` | Install dependencies |
-| `make generate-data` | Generate sample data |
-| `make test` | Run all tests |
-| `make test-coverage` | Run tests with coverage |
-| `make lint` | Run linting checks |
-| `make format` | Format code with black |
-| `make airflow-up` | Start Airflow with Docker |
-| `make airflow-down` | Stop Airflow |
-| `make clean` | Remove generated files |
-
----
-
-## 📊 Cost Considerations
-
-### Local Development
-- **Cost:** $0 (runs on local machine)
-
-### GCP Usage
-- **Cloud Storage:** 5GB free tier
-- **BigQuery:** 10GB querying free, 1TB storage free
-- **Dataproc:** Pay-per-use, use ephemeral clusters
-
-**Estimated Monthly Cost:**
-- Development: $0
-- Small production (daily, 10k records): <$5
-- Medium production (hourly, 1M records): $20-50
-
-See `docs/costs.md` for detailed breakdown.
+| Comando | Descrição |
+|---------|-----------|
+| `make setup` | Instalar dependências |
+| `make generate-data` | Gerar dados de amostra |
+| `make test` | Executar todos os testes |
+| `make test-coverage` | Executar testes com cobertura |
+| `make lint` | Executar verificações de lint |
+| `make format` | Formatar código com black |
+| `make airflow-up` | Iniciar Airflow com Docker |
+| `make airflow-down` | Parar Airflow |
+| `make clean` | Remover arquivos gerados |
 
 ---
 
-## 📚 Documentation
+## 📊 Considerações de Custo
 
-| Document | Description |
-|----------|-------------|
-| `README.md` | This file |
-| `docs/architecture.md` | Technical architecture |
-| `docs/data_model.md` | Database schema |
-| `docs/pipeline.md` | Pipeline details |
-| `docs/structure.md` | Project structure |
+### Desenvolvimento Local
 
----
+- **Custo:** R$ 0 (roda na máquina local)
 
-## 🚢 Deployment
+### Uso GCP
 
-### AWS (Alternative)
-- Replace GCS with **S3**
-- Replace BigQuery with **Redshift** or **Athena**
-- Use **MWAA** instead of Airflow
+- **Cloud Storage:** 5GB gratuito
+- **BigQuery:** 10GB gratuitos/mês de consulta, 1TB de armazenamento
+- **Dataproc:** Pay-per-use, use clusters efêmeros
 
-### Azure (Alternative)
-- Replace GCS with **Azure Data Lake**
-- Replace BigQuery with **Azure Synapse**
-- Use **Azure Data Factory**
+**Custo Mensal Estimado:**
+- Desenvolvimento: R$ 0
+- Produção pequena (diário, 10k registros): < R$ 20
+- Produção média (horário, 1M registros): R$ 70-180
 
 ---
 
-## 🎓 Lessons Learned
+## 📚 Documentação
 
-This project demonstrates:
-
-1. **Data Engineering discipline** → Proper layering, validation, monitoring
-2. **Scalability** → Spark-based processing handles millions of records
-3. **Observability** → Clear metrics and logging throughout pipeline
-4. **Reproducibility** → Seed fixed, deterministic data generation
-5. **Production readiness** → IaC, tests, CI/CD, documentation
-
----
-
-## 📜 License
-
-MIT License - See [LICENSE](LICENSE) for details.
+| Documento | Descrição |
+|-----------|-----------|
+| `README.md` | Este arquivo |
+| `docs/architecture.md` | Arquitetura técnica |
+| `docs/data_model.md` | Schema do banco de dados |
+| `docs/pipeline.md` | Detalhes do pipeline |
+| `docs/structure.md` | Estrutura de diretórios |
 
 ---
 
-## 🤝 Contributing
+## 🚢 Implementação
 
-This is a portfolio project. Feel free to explore and use as reference.
+### AWS (Alternativa)
+
+- Substituir GCS por **S3**
+- Substituir BigQuery por **Redshift** ou **Athena**
+- Usar **MWAA** em vez de Airflow
+
+### Azure (Alternativa)
+
+- Substituir GCS por **Azure Data Lake**
+- Substituir BigQuery por **Azure Synapse**
+- Usar **Azure Data Factory**
 
 ---
 
-## 📞 Contact
+## 🎓 Lições Aprendidas
 
-For questions or feedback, please open an issue on GitHub.
+Este projeto demonstra:
+
+1. **Disiplina de Engenharia de Dados** → Camadas adequadas, validação, monitoramento
+2. **Escalabilidade** → Processamento baseado em Spark lida com milhões de registros
+3. **Observabilidade** → Métricas e logs claros em todo o pipeline
+4. **Reprodutibilidade** → Geração de dados determinística com seed fixo
+5. **Pronto para produção** → IaC, testes, CI/CD, documentação
+
+---
+
+## 📜 Licença
+
+Licença MIT - Veja [LICENSE](LICENSE) para detalhes.
+
+---
+
+## 🤝 Contribuindo
+
+Este é um projeto de portfólio. Sinta-se livre para explorar e usar como referência.
+
+---
+
+## 📞 Contato
+
+Para dúvidas ou feedback, abra uma issue no GitHub.
