@@ -1,268 +1,268 @@
-# Pipeline Documentation
+# Documentação do Pipeline
 
-## Overview
+## Visão Geral
 
-The customer reviews pipeline processes customer feedback from multiple sources, performs data validation and cleaning, calculates sentiment, and loads the results into a data warehouse for analytics.
+O pipeline de avaliações de clientes processa feedbacks de clientes de múltiplas fontes, realiza validação e limpeza de dados, calcula sentimentos e carrega os resultados em um data warehouse para analíticos.
 
-## Pipeline Stages
+## Etapas do Pipeline
 
-### 1. Data Generation (Optional)
+### 1. Geração de Dados (Opcional)
 
-**Purpose:** Generate synthetic sample data for testing
+**Propósito:** Gerar dados sintéticos de amostra para testes
 
 **Script:** `scripts/generate_sample_data.py`
 
-**Command:**
+**Comando:**
 ```bash
 make generate-data
 ```
 
-**Features:**
-- Generates 10,000 reviews
-- Includes intentional data quality issues for testing
-- Uses seed 42 for reproducibility
+**Recursos:**
+- Gera 10.000 avaliações
+- Inclui problemas intencionais de qualidade de dados para testes
+- Usa seed 42 para reprodutibilidade
 
-**Output:** `data/sample/reviews.csv`
-
----
-
-### 2. Data Ingestion
-
-**Purpose:** Read reviews from CSV and write to RAW layer
-
-**Module:** `ingestion.ingest_reviews`
-
-**Tasks:**
-- Read CSV file
-- Add ingestion metadata
-- Convert to Parquet format
-- Write to RAW layer (partitioned)
-
-**Output:** `data/raw/reviews/year=YYYY/month=MM/day=DD/*.parquet`
+**Saída:** `data/sample/reviews.csv`
 
 ---
 
-### 3. Data Validation
+### 2. Ingestão de Dados
 
-**Purpose:** Validate data quality before transformation
+**Propósito:** Ler avaliações de CSV e escrever na camada RAW
 
-**Module:** `data_quality.checks`
+**Módulo:** `ingestion.ingest_reviews`
 
-**Checks:**
-- Schema validation (required columns, types)
-- Null checks (review_id, rating, text)
-- Rating validation (1-5 range)
-- Source validation (supported sources only)
-- Duplicate detection (by review_id)
-- Empty text detection
+**Tarefas:**
+- Ler arquivo CSV
+- Adicionar metadados de ingestão
+- Converter para formato Parquet
+- Escrever na camada RAW (particionado)
 
-**Output:** Validation report with metrics
+**Saída:** `data/raw/reviews/ano=AAAA/mês=MM/dia=DD/*.parquet`
 
 ---
 
-### 4. Data Transformation
+### 3. Validação de Dados
 
-**Purpose:** Clean and normalize data
+**Propósito:** Validar qualidade de dados antes da transformação
 
-**Module:** `transformations.clean_reviews`
+**Módulo:** `data_quality.checks`
 
-**Transformations:**
-- Text cleaning (strip whitespace, normalize spaces)
-- Source normalization (lowercase, mapping)
-- City/state/country normalization
-- Rating validation and conversion
-- Date validation and formatting
-- Duplicate removal
+**Verificações:**
+- Validação de schema (colunas e tipos requeridos)
+- Verificações de nulos (review_id, rating, texto)
+- Validação de rating (faixa 1-5)
+- Validação de fonte (apenas fontes suportadas)
+- Detecção de duplicatas (por review_id)
+- Detecção de texto vazio
 
-**Output:** Cleaned data in TRUSTED layer
-
----
-
-### 5. Sentiment Analysis
-
-**Purpose:** Classify sentiment of customer reviews
-
-**Module:** `transformations.sentiment_analysis`
-
-**Method:** VADER (Valence Aware Dictionary for Sentiment Reasoning)
-
-**Output:**
-- `sentiment`: POSITIVE, NEUTRAL, or NEGATIVE
-- `sentiment_score`: -1.0 to +1.0
-
-**Formula:**
-- POSITIVE: score ≥ 0.5
-- NEUTRAL: -0.5 < score < 0.5
-- NEGATIVE: score ≤ -0.5
-
-**Output:** Curated dataset in CURATED layer
+**Saída:** Relatório de validação com métricas
 
 ---
 
-### 6. Data Loading
+### 4. Transformação de Dados
 
-**Purpose:** Load data into BigQuery
+**Propósito:** Limpar e normalizar dados
 
-**Steps:**
-1. Load dimension tables (dim_source, dim_location)
-2. Load fact table (fact_reviews)
-3. Partition by review_date
-4. Cluster by source_id, location_id, sentiment
+**Módulo:** `transformations.clean_reviews`
 
-**Tools:**
-- BigQuery API
-- Airflow Google Cloud Operators
-- PySpark (optional for large datasets)
+**Transformações:**
+- Limpeza de texto (remover espaços extras, normalizar espaços)
+- Normalização de fonte (minúsculas, mapeamento)
+- Normalização de cidade/estado/país
+- Validação e conversão de rating
+- Validação e formatação de datas
+- Remoção de duplicatas
+
+**Saída:** Dados limpos na camada TRUSTED
 
 ---
 
-## Airflow DAG Structure
+### 5. Análise de Sentimentos
 
-### Local Pipeline (`customer_reviews_local_pipeline.py`)
+**Propósito:** Classificar sentimentos de avaliações de clientes
+
+**Módulo:** `transformations.sentiment_analysis`
+
+**Método:** VADER (Valence Aware Dictionary for Sentiment Reasoning)
+
+**Saída:**
+- `sentiment`: POSITIVO, NEUTRO ou NEGATIVO
+- `sentiment_score`: -1.0 a +1.0
+
+**Fórmula:**
+- POSITIVO: score ≥ 0.5
+- NEUTRO: -0.5 < score < 0.5
+- NEGATIVO: score ≤ -0.5
+
+**Saída:** Dataset curado na camada CURATED
+
+---
+
+### 6. Carregamento de Dados
+
+**Propósito:** Carregar dados no BigQuery
+
+**Etapas:**
+1. Carregar tabelas de dimensão (dim_source, dim_location)
+2. Carregar tabela fato (fact_reviews)
+3. Particionar por review_date
+4. Agrupar por source_id, location_id, sentiment
+
+**Ferramentas:**
+- API BigQuery
+- Operadores Google Cloud do Airflow
+- PySpark (opcional para grandes conjuntos de dados)
+
+---
+
+## Estrutura do DAG Airflow
+
+### Pipeline Local (`customer_reviews_local_pipeline.py`)
 
 ```
-generate_or_detect_input
+gerar_ou_detectar_entrada
     ↓
-ingest_reviews
+ingestion_avaliacoes
     ↓
-validate_raw_data
+validar_dados_brutos
     ↓
-transform_reviews
+transformar_avaliacoes
     ↓
-calculate_sentiment
+calcular_sentimento
     ↓
-run_data_quality_checks
+executar_verificações_de_qualidade
 ```
 
-### GCP Pipeline (`customer_reviews_gcp_pipeline.py`)
+### Pipeline GCP (`customer_reviews_gcp_pipeline.py`)
 
 ```
-generate_or_detect_input
+gerar_ou_detectar_entrada
     ↓
-upload_to_gcs_raw
+upload_para_gcs_raw
     ↓
-get_gcs_raw_bucket
+obter_bucket_gcs_raw
     ↓
-create_dataproc_cluster (optional)
+criar_cluster_dataproc (opcional)
     ↓
-submit_pyspark_job
+executar_job_pyspark
     ↓
-load_to_bigquery
+carregar_no_bigquery
     ↓
-run_bigquery_checks
+executar_verificacoes_bigquery
 ```
 
-## Task Dependencies
+## Dependências de Tarefas
 
-All tasks follow a sequential pattern:
+Todas as tarefas seguem um padrão sequencial:
 
-1. Each task depends on the previous task completing successfully
-2. Tasks can be re-run independently (idempotent)
-3. Failures trigger retries (up to 3 times)
+1. Cada tarefa depende da tarefa anterior completar com sucesso
+2. Tarefas podem ser reexecutadas independentemente (idempotentes)
+3. Falhas disparam retentativas (até 3 vezes)
 
-## Idempotency
+## Idempotência
 
-All tasks are idempotent:
-- Can be re-run multiple times without issues
-- Use overwrite mode for file writing
-- BigQuery uses WRITE_TRUNCATE for loads
+Todas as tarefas são idempotentes:
+- Podem ser reexecutadas várias vezes sem problemas
+- Usam modo overwrite para escrita de arquivos
+- BigQuery usa WRITE_TRUNCATE para carregamentos
 
-## Error Handling
+## Tratamento de Erros
 
-| Scenario | Action |
-|----------|--------|
-| Task failure | Retry up to 3 times with 5-minute delay |
-| Validation failure | DAG fails immediately (fail-fast) |
-| Data quality issues | Logged, optionally filtered out |
-| Network timeout | Retry with exponential backoff |
+| Cenário | Ação |
+|---------|------|
+| Falha de tarefa | Retentar até 3 vezes com 5 minutos de atraso |
+| Falha de validação | DAG falha imediatamente (fail-fast) |
+| Problemas de qualidade de dados | Registrados, opcionalmente filtrados |
+| Timeout de rede | Retentar com backoff exponencial |
 
-## Monitoring
+## Monitoramento
 
-### Airflow UI
-- DAG runs visible at `http://localhost:8080`
-- Task logs accessible from UI
-- DAG runs history tracked
+### UI Airflow
+- Execuções de DAG visíveis em `http://localhost:8080`
+- Logs de tarefas acessíveis pela UI
+- Histórico de execuções de DAG rastreado
 
 ### Logging
-- All tasks log to stdout
-- Airflow stores logs in `logs/` directory
-- Failed task logs available in UI
+- Todas as tarefas logam para stdout
+- Airflow armazena logs no diretório `logs/`
+- Logs de tarefas falhadas disponíveis na UI
 
-### Metrics
-- Record counts at each stage
-- Validation failure counts
-- Sentiment distribution
-- Processing time
+### Métricas
+- Contagem de registros em cada etapa
+- Contagem de falhas de validação
+- Distribuição de sentimentos
+- Tempo de processamento
 
-## Performance
+## Desempenho
 
-### Local Processing
-- 10,000 records: ~1-2 minutes
-- Memory usage: ~500MB
-- Disk usage: ~50MB (RAW) + ~25MB (TRUSTED) + ~25MB (CURATED)
+### Processamento Local
+- 10.000 registros: ~1-2 minutos
+- Uso de memória: ~500MB
+- Uso de disco: ~50MB (RAW) + ~25MB (TRUSTED) + ~25MB (CURATED)
 
-### GCP Processing
-- Can scale to millions of records
-- Dataproc cluster auto-scales
-- BigQuery handles large datasets efficiently
+### Processamento GCP
+- Pode escalar para milhões de registros
+- Cluster Dataproc auto-escala
+- BigQuery lida com grande volumes de dados eficientemente
 
-## Cost Optimization
+## Otimização de Custo
 
 ### Local
-- Free (runs on local machine)
+- Grátis (roda na máquina local)
 
 ### GCP
-- Use ephemeral Dataproc clusters
-- Shutdown clusters after job completion
-- Use partitioning and clustering in BigQuery to reduce scan costs
-- Enable BigQuery storage optimization
+- Use clusters Dataproc efêmeros
+- Desligue clusters após conclusão do job
+- Use particionamento e agrupamento no BigQuery para reduzir custos de varredura
+- Habilite otimização de armazenamento BigQuery
 
-## Troubleshooting
+## Solução de Problemas
 
-### Common Issues
+### Problemas Comuns
 
-1. **File not found**
-   - Ensure `make generate-data` was run
-   - Check file paths in code
+1. **Arquivo não encontrado**
+   - Certifique-se de rodar `make generate-data`
+   - Verifique caminhos de arquivos no código
 
-2. **Parquet write error**
-   - Ensure sufficient disk space
-   - Check directory permissions
+2. **Erro de escrita Parquet**
+   - Certifique-se de ter espaço em disco suficiente
+   - Verifique permissões de diretório
 
-3. **Validation failures**
-   - Check data quality issues in sample data
-   - Review validation rules in `data_quality/checks.py`
+3. **Falhas de validação**
+   - Verifique problemas de qualidade de dados nos dados de amostra
+   - Revise regras de validação em `data_quality/checks.py`
 
-4. **Airflow DAG stuck**
-   - Check Airflow logs: `docker compose logs -f`
-   - Verify dependencies are installed: `pip install -r requirements.txt`
+4. **DAG Airflow travada**
+   - Verifique logs Airflow: `docker compose logs -f`
+   - Verifique se as dependências estão instaladas: `pip install -r requirements.txt`
 
-5. **Sentiment analysis timeout**
-   - VADER is fast (< 1 second per 1000 records)
-   - Check if dataset is too large for local memory
+5. **Timeout da análise de sentimentos**
+   - VADER é rápido (< 1 segundo por 1000 registros)
+   - Verifique se o conjunto de dados é muito grande para a memória local
 
-## Extensions
+## Extensões
 
-### Real-Time Processing
-- Replace CSV input with Pub/Sub topic
-- Use Dataflow for streaming
+### Processamento em Tempo Real
+- Substituir entrada CSV por tópico Pub/Sub
+- Usar Dataflow para streaming
 
-### Advanced Analytics
-- Add BERT/RoBERTa for sentiment (requires more resources)
-- Add topic modeling for issue extraction
-- Add NER for entity recognition
+### Analíticos Avançados
+- Adicionar BERT/RoBERTa para sentimentos (requer mais recursos)
+- Adicionar modelagem de tópicos para extração de problemas
+- Adicionar NER para reconhecimento de entidades
 
-### Deployment
-- Use Cloud Composer for managed Airflow
-- Use Cloud Build for CI/CD
-- Use Artifact Registry for container images
+### Implementação
+- Usar Cloud Composer para Airflow gerenciado
+- Usar Cloud Build para CI/CD
+- Usar Artifact Registry para imagens de container
 
-## Best Practices
+## Melhores Práticas
 
-1. **Always validate input data** before processing
-2. **Log all transformations** for audit trail
-3. **Use partitioning** for large datasets
-4. **Test locally** before deploying to GCP
-5. **Monitor costs** when using GCP services
-6. **Use IAM least privilege** for service accounts
-7. **Never commit secrets** to Git
+1. **Sempre valide dados de entrada** antes do processamento
+2. **Registre todas as transformações** para rastreio de auditoria
+3. **Use particionamento** para grandes conjuntos de dados
+4. **Teste localmente** antes de implementar no GCP
+5. **Monitore custos** ao usar serviços GCP
+6. **Use IAM de menor privilégio** para service accounts
+7. **Nunca commit secrets** para o Git
