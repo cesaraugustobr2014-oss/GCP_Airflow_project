@@ -20,7 +20,7 @@ echo ""
 
 # Push to main branch
 echo "📡 Pushing to origin/main..."
-git push -u origin main
+git push origin main --force
 
 echo ""
 echo "✅ Successfully pushed to GitHub!"
