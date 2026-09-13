@@ -234,8 +234,7 @@ def run_data_quality_task(**context):
     reviews_path = curated_dir / "customer_sentiment"
     
     # Read curated data
-    table = pd.read_parquet(reviews_path)
-    df = table.to_pandas()
+    df = pd.read_parquet(reviews_path)
     
     print(f"Running final quality checks on {len(df)} records")
     

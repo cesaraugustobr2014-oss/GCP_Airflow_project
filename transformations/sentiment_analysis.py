@@ -30,6 +30,31 @@ except ImportError:
     nltk_available = False
     logger.warning("NLTK not installed. Install with: pip install nltk")
 
+_analyzer_instance = None
+
+# Portuguese sentiment lexicon additions to support PT-BR reviews alongside English
+PORTUGUESE_LEXICON = {
+    "excelente": 3.0, "incrivel": 3.0, "incrível": 3.0, "otimo": 2.8, "ótimo": 2.8,
+    "otima": 2.8, "ótima": 2.8, "adoramos": 2.5, "adorei": 2.5, "perfeito": 3.0,
+    "maravilhoso": 3.0, "maravilhosa": 3.0, "satisfeito": 2.2, "superou": 2.4,
+    "profissional": 2.0, "atenciosa": 2.0, "atencioso": 2.0, "recomendar": 2.0,
+    "recomendo": 2.2, "bom": 1.5, "boa": 1.5, "obrigado": 1.5,
+    "pessimo": -3.2, "péssimo": -3.2, "pessima": -3.2, "péssima": -3.2,
+    "ruim": -2.5, "horrivel": -3.0, "horrível": -3.0, "demorou": -1.8,
+    "problema": -2.0, "problemas": -2.0, "defeito": -2.2, "descuidado": -2.0,
+    "decepcionado": -2.5, "decepcionante": -2.5, "nunca": -1.5, "falha": -2.0,
+}
+
+
+def _get_analyzer() -> SentimentIntensityAnalyzer:
+    """Get or create singleton VADER analyzer with Portuguese lexicon extensions."""
+    global _analyzer_instance
+    if _analyzer_instance is None:
+        analyzer = SentimentIntensityAnalyzer()
+        analyzer.lexicon.update(PORTUGUESE_LEXICON)
+        _analyzer_instance = analyzer
+    return _analyzer_instance
+
 
 def analyze_sentiment(text: str) -> Tuple[str, float]:
     """
@@ -49,11 +74,10 @@ def analyze_sentiment(text: str) -> Tuple[str, float]:
     if text is None or str(text).strip() == "":
         return "NEUTRAL", 0.0
     
-    # Initialize analyzer (cached for performance)
-    analyzer = SentimentIntensityAnalyzer()
+    analyzer = _get_analyzer()
     
     # Get sentiment scores
-    scores = analyzer.polarity_scores(text)
+    scores = analyzer.polarity_scores(str(text))
     compound_score = scores["compound"]
     
     # Determine sentiment label
@@ -86,7 +110,7 @@ def analyze_dataframe(df: pd.DataFrame, text_column: str = "review_text") -> pd.
     logger.info(f"Analyzing sentiment for {len(df_result)} records")
     
     # Initialize analyzer once
-    analyzer = SentimentIntensityAnalyzer()
+    analyzer = _get_analyzer()
     
     sentiments = []
     scores = []

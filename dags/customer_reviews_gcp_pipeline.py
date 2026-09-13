@@ -95,138 +95,50 @@ generate_input_gcp = PythonOperator(
 # Task 2: Upload to GCS RAW Layer
 # ============================================
 
-def get_gcs_raw_bucket(**context):
-    """Get GCS RAW bucket name from environment variable."""
-    bucket = os.environ.get("GCS_RAW_BUCKET", "customer-experience-raw")
-    logger.info(f"Using RAW bucket: {bucket}")
-    return bucket
-
+raw_bucket_name = os.environ.get("GCS_RAW_BUCKET", "customer-experience-raw")
+trusted_bucket_name = os.environ.get("GCS_TRUSTED_BUCKET", "customer-experience-trusted")
+gcp_project_id = os.environ.get("GCP_PROJECT_ID", "your-project-id")
+gcp_region = os.environ.get("GCP_REGION", "us-central1")
+bq_dataset = os.environ.get("BIGQUERY_DATASET", "customer_experience")
 
 upload_to_gcs_raw = LocalToGoogleCloudStorageOperator(
     task_id="upload_to_gcs_raw",
-    src=Path(__file__).parent.parent / "data" / "sample" / "reviews.csv",
+    src=str(Path(__file__).parent.parent / "data" / "sample" / "reviews.csv"),
     dst="reviews.csv",
-    bucket="{{ task_instance.xcom_pull(task_ids='get_gcs_raw_bucket') }}",
+    bucket=raw_bucket_name,
     gcp_conn_id="google_cloud_default",
     dag=dag,
 )
 
-get_gcs_raw_bucket = PythonOperator(
-    task_id="get_gcs_raw_bucket",
-    python_callable=get_gcs_raw_bucket,
-    dag=dag,
-)
-
-generate_input_gcp >> get_gcs_raw_bucket >> upload_to_gcs_raw
-
 
 # ============================================
-# Task 3: Create Dataproc Cluster (Optional)
+# Task 3: Dataproc PySpark Job (Optional cluster provisioning)
 # ============================================
-
-def get_cluster_name(**context):
-    """Generate unique cluster name."""
-    import time
-    return f"customer-experience-cluster-{int(time.time())}"
-
-
-create_dataproc_cluster = DataprocCreateClusterOperator(
-    task_id="create_dataproc_cluster",
-    project_id=os.environ.get("GCP_PROJECT_ID", "your-project-id"),
-    cluster_name="{{ task_instance.xcom_pull(task_ids='get_cluster_name') }}",
-    region=os.environ.get("GCP_REGION", "us-central1"),
-    gcp_conn_id="google_cloud_default",
-    cluster_config={
-        "master_config": {
-            "num_instances": 1,
-            "machine_type_uri": "n1-standard-2",
-        },
-        "worker_config": {
-            "num_instances": 2,
-            "machine_type_uri": "n1-standard-2",
-        },
-        "software_config": {
-            "image_version": "2.2-debian10",
-        },
-    },
-    dag=dag,
-)
-
-get_cluster_name = PythonOperator(
-    task_id="get_cluster_name",
-    python_callable=get_cluster_name,
-    dag=dag,
-)
-
-# Only create cluster if requested (commented by default for cost savings)
-# upload_to_gcs_raw >> create_dataproc_cluster
-
-
-# ============================================
-# Task 4: Submit PySpark Job
-# ============================================
-
-def get_gcs_trusted_bucket(**context):
-    """Get GCS TRUSTED bucket name."""
-    bucket = os.environ.get("GCS_TRUSTED_BUCKET", "customer-experience-trusted")
-    logger.info(f"Using TRUSTED bucket: {bucket}")
-    return bucket
-
 
 submit_pyspark_job = DataprocSubmitPySparkJobOperator(
     task_id="submit_pyspark_job",
-    main=f"file:///opt/airflow/spark/transform_reviews.py",
-    cluster_name="{{ task_instance.xcom_pull(task_ids='get_cluster_name') }}",
-    region=os.environ.get("GCP_REGION", "us-central1"),
+    main="file:///opt/airflow/spark/transform_reviews.py",
+    cluster_name=os.environ.get("DATAPROC_CLUSTER_NAME", "customer-experience-cluster"),
+    region=gcp_region,
     gcp_conn_id="google_cloud_default",
     arguments=[
-        "--input", "gs://{{ task_instance.xcom_pull(task_ids='get_gcs_raw_bucket') }}/reviews.csv",
-        "--output", "gs://{{ task_instance.xcom_pull(task_ids='get_gcs_trusted_bucket') }}/reviews",
+        "--input", f"gs://{raw_bucket_name}/reviews.csv",
+        "--output", f"gs://{trusted_bucket_name}/reviews",
         "--batch-id", "dag-run-{{ ds }}",
     ],
     dag=dag,
 )
 
-get_gcs_trusted_bucket = PythonOperator(
-    task_id="get_gcs_trusted_bucket",
-    python_callable=get_gcs_trusted_bucket,
-    dag=dag,
-)
-
-# upload_to_gcs_raw >> submit_pyspark_job
-
 
 # ============================================
-# Task 5: Delete Dataproc Cluster
+# Task 4: Load to BigQuery
 # ============================================
-
-delete_dataproc_cluster = DataprocDeleteClusterOperator(
-    task_id="delete_dataproc_cluster",
-    cluster_name="{{ task_instance.xcom_pull(task_ids='get_cluster_name') }}",
-    region=os.environ.get("GCP_REGION", "us-central1"),
-    gcp_conn_id="google_cloud_default",
-    dag=dag,
-)
-
-# submit_pyspark_job >> delete_dataproc_cluster
-
-
-# ============================================
-# Task 6: Load to BigQuery
-# ============================================
-
-def get_bigquery_dataset(**context):
-    """Get BigQuery dataset name."""
-    dataset = os.environ.get("BIGQUERY_DATASET", "customer_experience")
-    logger.info(f"Using BigQuery dataset: {dataset}")
-    return dataset
-
 
 load_to_bigquery = GCSToBigQuery(
     task_id="load_to_bigquery",
-    bucket="{{ task_instance.xcom_pull(task_ids='get_gcs_trusted_bucket') }}",
+    bucket=trusted_bucket_name,
     source_objects=["reviews/*/*.parquet"],
-    destination_project_dataset_table=f"{{{{ task_instance.xcom_pull(task_ids='get_bigquery_dataset') }}}}.reviews",
+    destination_project_dataset_table=f"{bq_dataset}.reviews",
     source_format="PARQUET",
     write_disposition="WRITE_TRUNCATE",
     autodetect=True,
@@ -234,31 +146,18 @@ load_to_bigquery = GCSToBigQuery(
     dag=dag,
 )
 
-get_bigquery_dataset = PythonOperator(
-    task_id="get_bigquery_dataset",
-    python_callable=get_bigquery_dataset,
-    dag=dag,
-)
-
-# submit_pyspark_job >> load_to_bigquery
-
 
 # ============================================
-# Task 7: Run BigQuery Data Quality Checks
+# Task 5: Run BigQuery Data Quality Checks
 # ============================================
 
 def run_bigquery_checks(**context):
-    """Run data quality checks in BigQuery."""
+    """Run basic post-load verification queries in BigQuery."""
     from google.cloud import bigquery
     
-    client = bigquery.Client(
-        project=os.environ.get("BIGQUERY_PROJECT", os.environ.get("GCP_PROJECT_ID"))
-    )
+    client = bigquery.Client(project=gcp_project_id)
+    table_id = f"{bq_dataset}.reviews"
     
-    dataset_id = os.environ.get("BIGQUERY_DATASET", "customer_experience")
-    table_id = f"{dataset_id}.reviews"
-    
-    # Check record count
     query = f"SELECT COUNT(*) as count FROM `{table_id}`"
     query_job = client.query(query)
     results = query_job.result()
@@ -266,10 +165,7 @@ def run_bigquery_checks(**context):
     for row in results:
         logger.info(f"BigQuery record count: {row.count}")
     
-    # Additional checks can be added here
-    # See sql/data_quality.sql for example queries
-    
-    return results
+    return True
 
 
 bigquery_checks = PythonOperator(
@@ -278,19 +174,10 @@ bigquery_checks = PythonOperator(
     dag=dag,
 )
 
-# load_to_bigquery >> bigquery_checks
-
 
 # ============================================
 # Task Dependencies
 # ============================================
 
-# Full pipeline with GCP (uncomment lines to enable)
-generate_input_gcp >> get_gcs_raw_bucket >> upload_to_gcs_raw
-# upload_to_gcs_raw >> get_cluster_name >> create_dataproc_cluster
-# create_dataproc_cluster >> get_gcs_trusted_bucket >> submit_pyspark_job
-# submit_pyspark_job >> delete_dataproc_cluster
-# submit_pyspark_job >> load_to_bigquery >> bigquery_checks
+generate_input_gcp >> upload_to_gcs_raw >> submit_pyspark_job >> load_to_bigquery >> bigquery_checks
 
-# Simplified pipeline without Dataproc (for cost savings)
-# upload_to_gcs_raw >> get_gcs_trusted_bucket >> load_to_bigquery >> bigquery_checks
